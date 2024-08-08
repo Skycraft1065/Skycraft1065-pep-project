@@ -42,7 +42,7 @@ public class SocialMediaController {
         app.get("/messages", this::getAllMessagesHandler);
         app.get("/messages/{message_id}", this::getMessageByIdHandler);
         app.delete("/messages/{message_id}", this::deleteMessageByIdHandler);
-        app.patch("/messages/{message_id}", this::updateMessageByIdHandler);
+        app.patch("/messages/{message_id}", this::updateMessageHandler);
         app.get("/accounts/{account_id}/messages", this::getAllMessagesByAccountHandler);
 
         return app;
@@ -64,32 +64,32 @@ public class SocialMediaController {
     //2
     private void postLoginHandler(Context ctx) throws JsonProcessingException
     {
-        ObjectMapper mapper = new ObjectMapper();
-        Account account = mapper.readValue(ctx.body(), Account.class);
-        Account loginAccount = accountService.loginAccount(account);
-        if(loginAccount!=null){
-            ctx.json(mapper.writeValueAsString(loginAccount));
-        }else{
-            ctx.status(401);
-        }
+        
     }
 
     //3
-    private void postMessagesHandler(Context ctx)
+    private void postMessagesHandler(Context ctx) throws JsonProcessingException
     {
-
+        ObjectMapper mapper = new ObjectMapper();
+        Message message = mapper.readValue(ctx.body(), Message.class);
+        Message addedMessage = messageService.postMessage(message);
+        if(addedMessage!=null){
+            ctx.json(mapper.writeValueAsString(addedMessage));
+        }else{
+            ctx.status(400);
+        }
     }
 
     //4
     private void getAllMessagesHandler(Context ctx)
     {
-
+        ctx.json(messageService.getAllMessages());
     }
 
     //5
     private void getMessageByIdHandler(Context ctx)
     {
-
+        ctx.json(messageService.getMessageById(ctx.pathParam("message_id")));
     }
 
     //6
@@ -99,9 +99,18 @@ public class SocialMediaController {
     }
 
     //7
-    private void updateMessageByIdHandler(Context ctx)
+    private void updateMessageHandler(Context ctx) throws JsonProcessingException
     {
-
+        ObjectMapper mapper = new ObjectMapper();
+        Message message = mapper.readValue(ctx.body(), Message.class);
+        int message_id = Integer.parseInt(ctx.pathParam("message_id"));
+        Message updatedMessage = messageService.updateMessage(message_id, message);
+        System.out.println(updatedMessage);
+        if(updatedMessage == null){
+            ctx.status(400);
+        }else{
+            ctx.json(mapper.writeValueAsString(updatedMessage));
+        }
     }
 
     //8
