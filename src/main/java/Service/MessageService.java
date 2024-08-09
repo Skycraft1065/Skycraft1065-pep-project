@@ -23,6 +23,7 @@ public class MessageService {
      * Communicates with the DAO to post a message to the database
      * @param message w/o an ID to add to the database
      * @return the posted message if its contents follow req. criteria, otherwise null
+     * 
      */
     public Message postMessage(Message message)
     {
