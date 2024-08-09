@@ -10,13 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-
-/**
- * TODO: You will need to write your own endpoints and handlers for your controller. The endpoints you will need can be
- * found in readme.md as well as the test cases. You should
- * refer to prior mini-project labs and lecture materials for guidance on how a controller may be built.
- */
 public class SocialMediaController {
     
     AccountService accountService;
@@ -30,8 +23,7 @@ public class SocialMediaController {
     
     
     /**
-     * In order for the test cases to work, you will need to write the endpoints in the startAPI() method, as the test
-     * suite must receive a Javalin object from this method.
+     * Initializes the different Uris
      * @return a Javalin app object which defines the behavior of the Javalin controller.
      */
     public Javalin startAPI() {
@@ -41,82 +33,168 @@ public class SocialMediaController {
         app.post("/messages", this::postMessagesHandler);
         app.get("/messages", this::getAllMessagesHandler);
         app.get("/messages/{message_id}", this::getMessageByIdHandler);
-        app.delete("/messages/{message_id}", this::deleteMessageByIdHandler);
+        app.delete("/messages/{message_id}", this::deleteMessageHandler);
         app.patch("/messages/{message_id}", this::updateMessageHandler);
         app.get("/accounts/{account_id}/messages", this::getAllMessagesByAccountHandler);
 
         return app;
     }
 
-    //1
+    /**
+     * 
+     * Handles registering (creating) a new Account
+     * @param ctx handles HTTP requests
+     * @throws JsonProcessingException
+     * 
+     */
     private void postRegisterHandler(Context ctx) throws JsonProcessingException
     {
         ObjectMapper mapper = new ObjectMapper();
+        
         Account account = mapper.readValue(ctx.body(), Account.class);
+        
         Account addedAccount = accountService.registerAccount(account);
-        if(addedAccount!=null){
+        
+        //If the account isn't null, proceed. Otherwise, client error
+        if(addedAccount!=null)
+        {
             ctx.json(mapper.writeValueAsString(addedAccount));
-        }else{
+        }
+        else
+        {
             ctx.status(400);
         }
     }
 
-    //2
+    /**
+     * Handles login requests
+     * @param ctx handles HTTP requests
+     * @throws JsonProcessingException
+     */
     private void postLoginHandler(Context ctx) throws JsonProcessingException
     {
+        ObjectMapper mapper = new ObjectMapper();
         
+        Account loginAttempt = mapper.readValue(ctx.body(), Account.class);
+        
+        Account account = accountService.loginAccount(loginAttempt);
+        
+        //If the account isn't null, and the username and password match on both accounts, proceed. Otherwise, access denied
+        if(account != null && account.getUsername().equals(loginAttempt.getUsername()) && account.getPassword().equals(loginAttempt.getPassword()))
+        {
+            ctx.json(mapper.writeValueAsString(account));
+        }
+        else
+        {
+            ctx.status(401);
+        }
     }
 
-    //3
+    /**
+     * Handles posting new messages to the database
+     * @param ctx
+     * @throws JsonProcessingException
+     */
     private void postMessagesHandler(Context ctx) throws JsonProcessingException
     {
         ObjectMapper mapper = new ObjectMapper();
+        
         Message message = mapper.readValue(ctx.body(), Message.class);
+        
         Message addedMessage = messageService.postMessage(message);
-        if(addedMessage!=null){
+        
+        //If the message isn't null, proceed. Otherwise, client error
+        if(addedMessage!=null)
+        {
             ctx.json(mapper.writeValueAsString(addedMessage));
-        }else{
+        }
+        else
+        {
             ctx.status(400);
         }
     }
 
-    //4
+    /**
+     * Handles getting all messages from the database
+     * @param ctx handles HTTP requests
+     */
     private void getAllMessagesHandler(Context ctx)
     {
         ctx.json(messageService.getAllMessages());
     }
 
-    //5
+    /**
+     * Handles getting a message using a given ID
+     * @param ctx handles HTTP requests
+     */
     private void getMessageByIdHandler(Context ctx)
     {
-        ctx.json(messageService.getMessageById(ctx.pathParam("message_id")));
-    }
-
-    //6
-    private void deleteMessageByIdHandler(Context ctx)
-    {
-
-    }
-
-    //7
-    private void updateMessageHandler(Context ctx) throws JsonProcessingException
-    {
-        ObjectMapper mapper = new ObjectMapper();
-        Message message = mapper.readValue(ctx.body(), Message.class);
         int message_id = Integer.parseInt(ctx.pathParam("message_id"));
-        Message updatedMessage = messageService.updateMessage(message_id, message);
-        System.out.println(updatedMessage);
-        if(updatedMessage == null){
-            ctx.status(400);
-        }else{
-            ctx.json(mapper.writeValueAsString(updatedMessage));
+        Message message = messageService.getMessageById(message_id);
+
+        //If the message isn't null, show to json. Otherwise, leave empty
+        if (message != null)
+        {
+            ctx.json(message);
+        }
+        else
+        {
+            ctx.json("");
         }
     }
 
-    //8
+    /**
+     * Handles deleting a message from the database
+     * @param ctx handles HTTP requests
+     */
+    private void deleteMessageHandler(Context ctx)
+    {
+        int message_id = Integer.parseInt(ctx.pathParam("message_id"));
+        Message message = messageService.deleteMessage(message_id);
+
+        //If the message isn't null, show to json. Otherwise, leave empty
+        if (message != null)
+        {
+            ctx.json(message);
+        }
+        else
+        {
+            ctx.json("");
+        }
+    }
+
+    /**
+     * Handles updating messages in the database
+     * @param ctx handles HTTP requests
+     * @throws JsonProcessingException
+     */
+    private void updateMessageHandler(Context ctx) throws JsonProcessingException
+    {
+        ObjectMapper mapper = new ObjectMapper();
+        
+        Message message = mapper.readValue(ctx.body(), Message.class);
+        int message_id = Integer.parseInt(ctx.pathParam("message_id"));
+        Message updatedMessage = messageService.updateMessage(message_id, message);
+
+        //If the message isn't null, show to json. Otherwise, client error
+        if(updatedMessage != null)
+        {
+            ctx.json(mapper.writeValueAsString(updatedMessage));
+        }
+        else
+        {
+            ctx.status(400);
+        }
+    }
+
+    /**
+     * Handles retrieving all messages by a specific account
+     * @param ctx handles HTTP requests
+     */
     private void getAllMessagesByAccountHandler(Context ctx)
     {
-
+        int posted_by = Integer.parseInt(ctx.pathParam("account_id"));
+        ctx.json(messageService.getAllMessagesByAccount(posted_by));
     }
 
 
